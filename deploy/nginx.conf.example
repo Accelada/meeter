@@ -1,0 +1,23 @@
+# Replace coste.example.com and certificate paths. Bind the container only to localhost.
+server {
+    listen 80;
+    server_name coste.example.com;
+    return 301 https://$host$request_uri;
+}
+server {
+    listen 443 ssl;
+    server_name coste.example.com;
+    ssl_certificate /etc/letsencrypt/live/coste.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/coste.example.com/privkey.pem;
+    client_max_body_size 64k;
+    add_header Referrer-Policy no-referrer always;
+    add_header Strict-Transport-Security "max-age=31536000" always;
+    # Do not add X-Frame-Options DENY/SAMEORIGIN: Office embeds the task pane.
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header Authorization $http_authorization;
+        proxy_read_timeout 35s;
+    }
+}

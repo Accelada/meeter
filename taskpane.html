@@ -1,0 +1,27 @@
+﻿<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Meeter</title><link rel="stylesheet" href="src/styles.css"></head>
+<body><main>
+<p id="status" role="status" aria-live="polite">Cargando tarifas…</p>
+<section id="demoControls" class="demo-controls" hidden aria-label="Datos de demostración">
+<span id="mode" class="badge"></span>
+<label>Organizador<input id="organizer" type="email" value="organizador@ejemplo.com"></label>
+<label>Asistentes<textarea id="emails" rows="3">junior@ejemplo.com, senior@ejemplo.com, director@ejemplo.com</textarea></label>
+<label>Duración · minutos<input id="minutes" type="number" min="1" value="30"></label>
+<label class="check-label"><input id="recurring" type="checkbox">Reunión periódica</label>
+<div id="recurrenceControls" hidden>
+<label>Frecuencia<select id="frequency"><option value="daily">Diaria</option><option value="weekly" selected>Semanal</option><option value="monthly">Mensual</option><option value="yearly">Anual</option></select></label>
+<label>Cada<input id="interval" type="number" min="1" max="999" value="1"></label>
+<label>Inicio de la serie<input id="seriesStart" type="date" value="2026-11-02"></label>
+<label>Número de reuniones<input id="occurrences" type="number" min="1" max="100000" value="10"></label>
+<label class="check-label"><input id="unbounded" type="checkbox">Sin fecha de fin</label>
+</div>
+</section>
+<section class="estimate" aria-label="Coste estimado">
+<div class="estimate-heading"><span>Coste estimado</span><button id="export" class="icon-button" type="button" aria-label="Descargar estimación JSON" title="Descargar estimación JSON" disabled><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M5 16v4h14v-4"/></svg><span class="tooltip" aria-hidden="true">Descargar JSON</span></button></div>
+<div class="price-line"><span id="total">—</span><span id="perMeeting" hidden>/reunión</span></div><div id="seriesTotal" hidden></div><div id="summary">Sin datos</div><div id="metrics"></div>
+</section>
+<label class="center-label" for="center">Centro de coste</label><select id="center"></select>
+<details class="breakdown"><summary><span>Desglose de asistentes</span><span id="peopleCount" class="count"></span><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg></summary><div id="people"></div></details>
+<footer>Coste orientativo según las tarifas del catálogo.</footer>
+</main><script type="module" src="src/app.js"></script></body></html>

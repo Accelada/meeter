@@ -1,0 +1,287 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Meeter API",
+    "version": "1.0.0",
+    "description": "Consulta estimaciones registradas por UUID o ID EWS de Outlook. No importa eventos de Graph ni confirma entrega."
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    },
+    {
+      "basicAuth": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      },
+      "basicAuth": {
+        "type": "http",
+        "scheme": "basic"
+      }
+    },
+    "schemas": {
+      "Meeting": {
+        "type": "object",
+        "required": [
+          "id",
+          "durationMinutes",
+          "total",
+          "currency"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "outlookItemId": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "durationMinutes": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "recurrence": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "isRecurring": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "occurrenceCount": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "seriesTotal": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "seriesStatus": {
+            "type": "string",
+            "enum": [
+              "single",
+              "finite",
+              "unbounded",
+              "unavailable",
+              "tooLarge"
+            ]
+          }
+        },
+        "additionalProperties": true
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/v1/meetings/query": {
+      "post": {
+        "summary": "Recupera reuniones registradas por ID o lista de IDs",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "required": [
+                      "id"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "maxLength": 2048
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "ids"
+                    ],
+                    "properties": {
+                      "ids": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 100,
+                        "items": {
+                          "type": "string",
+                          "maxLength": 2048
+                        }
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Resultados y IDs ausentes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "meetings": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Meeting"
+                      }
+                    },
+                    "missingIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Entrada inválida"
+          },
+          "401": {
+            "description": "Sin acceso"
+          },
+          "403": {
+            "description": "Origen no permitido"
+          },
+          "409": {
+            "description": "ID ambiguo"
+          },
+          "503": {
+            "description": "PostgreSQL no disponible"
+          }
+        }
+      }
+    },
+    "/api/v1/meetings": {
+      "get": {
+        "summary": "Consulta una reunión o uno de sus atributos",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 2048
+            }
+          },
+          {
+            "name": "attribute",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "subject",
+                "start",
+                "end",
+                "durationMinutes",
+                "personCount",
+                "total",
+                "currency",
+                "hourlyTotal",
+                "costPerMinute",
+                "personHours",
+                "unknownCount",
+                "people",
+                "costCenter",
+                "organizerEmail",
+                "outlookItemId",
+                "status",
+                "source",
+                "generatedAt",
+                "captureEvent",
+                "recurrence",
+                "isRecurring",
+                "occurrenceCount",
+                "seriesTotal",
+                "seriesStatus"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reunión completa o {id, attribute, value}",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Atributo o parámetros inválidos"
+          },
+          "401": {
+            "description": "Sin acceso"
+          },
+          "403": {
+            "description": "Origen no permitido"
+          },
+          "404": {
+            "description": "Reunión no registrada"
+          },
+          "409": {
+            "description": "ID ambiguo"
+          },
+          "503": {
+            "description": "PostgreSQL no disponible"
+          }
+        }
+      }
+    },
+    "/api/rates": {
+      "get": {
+        "summary": "Catálogo SQL para el cálculo",
+        "responses": {
+          "200": {
+            "description": "Configuración de tarifas"
+          },
+          "401": {
+            "description": "Sin acceso"
+          },
+          "503": {
+            "description": "PostgreSQL no disponible"
+          }
+        }
+      }
+    }
+  }
+}
