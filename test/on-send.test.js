@@ -29,6 +29,23 @@ test('un correo no dispara guardado de estimaciones',async()=>{
   await handleSend(state.event,{office:state.office,fetchImpl:()=>assert.fail('No debe contactar con Neon')});
   assert.deepEqual(state.completions,[{allowEvent:true}]);
 });
+test('ItemSend utiliza la empresa y credencial personal guardadas en Outlook',async()=>{
+ const state=setup();
+ state.office.context.roamingSettings={get:()=>({slug:'empresa-a',token:'mt_test',expiresAt:new Date(Date.now()+60000).toISOString()})};
+ await handleSend(state.event,{office:state.office,fetchImpl:async(path,options)=>{
+  assert.equal(path,'/api/companies/empresa-a/estimates');assert.equal(options.headers.Authorization,'Bearer mt_test');
+  assert.equal(state.values.has('meeter.company.session'),false);
+  return {ok:true,json:async()=>({id:'saved'})};
+ }});assert.deepEqual(state.completions,[{allowEvent:true}]);
+});
+test('una credencial caducada no dispara una petición de guardado',async()=>{
+ const state=setup();state.office.context.roamingSettings={get:()=>({slug:'empresa-a',token:'mt_test',expiresAt:'2020-01-01'})};
+ await handleSend(state.event,{office:state.office,fetchImpl:()=>assert.fail('No debe usar la sesión caducada')});assert.deepEqual(state.completions,[{allowEvent:false}]);
+});
+test('un borrador de otra empresa exige confirmar la selección en el panel',async()=>{
+ const state=setup();state.values.set('meeterCompanySlug','empresa-b');state.office.context.roamingSettings={get:()=>({slug:'empresa-a',token:'mt_test',expiresAt:new Date(Date.now()+60000).toISOString()})};
+ await handleSend(state.event,{office:state.office,fetchImpl:()=>assert.fail('No debe registrar el borrador en otra empresa')});assert.deepEqual(state.completions,[{allowEvent:false}]);
+});
 test('si PostgreSQL falla, bloquea el envío y muestra aviso',async()=>{
   const state=setup();await handleSend(state.event,{office:state.office,fetchImpl:async()=>({ok:false})});
   assert.deepEqual(state.completions,[{allowEvent:false}]);assert.equal(state.notifications.length,1);

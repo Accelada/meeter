@@ -1,5 +1,12 @@
 # Meeter API · v1
 
+Con `MEETER_MULTI_TENANT=true`, utiliza `/api/companies/{slug}` como prefijo en lugar
+de `/api` y un JWT personal de Neon o una sesión de dispositivo revocable. La clave
+global es exclusiva del operador del servicio y las rutas antiguas quedan desactivadas.
+Consulta [el contrato multiempresa y el portal](./companies.md) para altas,
+importaciones, permisos y autenticación. Los cuerpos descritos a continuación se
+mantienen, sujetos a los permisos de empresa y usuario.
+
 API de una organización. Consulta estimaciones **ya registradas en este servicio**.
 No descarga eventos desde Microsoft Graph ni confirma que una invitación se haya entregado:
 el registro automático procede del evento previo al envío `ItemSend`.

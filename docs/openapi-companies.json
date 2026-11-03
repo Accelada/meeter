@@ -1,0 +1,1083 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Meeter API",
+    "version": "2.0.0",
+    "description": "Espacios por empresa. JWT Neon verificado o sesión personal mt_. Las reuniones se filtran por empresa y propietario. La clave global solo permite administrar el servicio."
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      },
+      "basicAuth": {
+        "type": "http",
+        "scheme": "basic"
+      }
+    },
+    "schemas": {
+      "Meeting": {
+        "type": "object",
+        "required": [
+          "id",
+          "durationMinutes",
+          "total",
+          "currency"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "outlookItemId": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "durationMinutes": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "recurrence": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "isRecurring": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "occurrenceCount": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "seriesTotal": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "seriesStatus": {
+            "type": "string",
+            "enum": [
+              "single",
+              "finite",
+              "unbounded",
+              "unavailable",
+              "tooLarge"
+            ]
+          }
+        },
+        "additionalProperties": true
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/companies/{slug}/v1/meetings/query": {
+      "post": {
+        "summary": "Recupera reuniones registradas por ID o lista de IDs",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "required": [
+                      "id"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "maxLength": 2048
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "ids"
+                    ],
+                    "properties": {
+                      "ids": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 100,
+                        "items": {
+                          "type": "string",
+                          "maxLength": 2048
+                        }
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Resultados y IDs ausentes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "meetings": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Meeting"
+                      }
+                    },
+                    "missingIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Entrada inválida"
+          },
+          "401": {
+            "description": "Sin acceso"
+          },
+          "403": {
+            "description": "Origen no permitido"
+          },
+          "409": {
+            "description": "ID ambiguo"
+          },
+          "503": {
+            "description": "PostgreSQL no disponible"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "slug",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{1,62}$"
+          }
+        }
+      ]
+    },
+    "/api/companies/{slug}/v1/meetings": {
+      "get": {
+        "summary": "Consulta una reunión o uno de sus atributos",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 2048
+            }
+          },
+          {
+            "name": "attribute",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "subject",
+                "start",
+                "end",
+                "durationMinutes",
+                "personCount",
+                "total",
+                "currency",
+                "hourlyTotal",
+                "costPerMinute",
+                "personHours",
+                "unknownCount",
+                "people",
+                "costCenter",
+                "organizerEmail",
+                "outlookItemId",
+                "status",
+                "source",
+                "generatedAt",
+                "captureEvent",
+                "recurrence",
+                "isRecurring",
+                "occurrenceCount",
+                "seriesTotal",
+                "seriesStatus"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reunión completa o {id, attribute, value}",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Atributo o parámetros inválidos"
+          },
+          "401": {
+            "description": "Sin acceso"
+          },
+          "403": {
+            "description": "Origen no permitido"
+          },
+          "404": {
+            "description": "Reunión no registrada"
+          },
+          "409": {
+            "description": "ID ambiguo"
+          },
+          "503": {
+            "description": "PostgreSQL no disponible"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "slug",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{1,62}$"
+          }
+        }
+      ]
+    },
+    "/api/companies/{slug}/rates": {
+      "get": {
+        "summary": "Catálogo SQL para el cálculo",
+        "responses": {
+          "200": {
+            "description": "Configuración de tarifas"
+          },
+          "401": {
+            "description": "Sin acceso"
+          },
+          "503": {
+            "description": "PostgreSQL no disponible"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "slug",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{1,62}$"
+          }
+        }
+      ]
+    },
+    "/api/config": {
+      "get": {
+        "summary": "Configuración pública de acceso",
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "400": {
+            "description": "Entrada inválida"
+          },
+          "401": {
+            "description": "Identidad o sesión requerida"
+          },
+          "403": {
+            "description": "Perfil insuficiente"
+          },
+          "404": {
+            "description": "Recurso inexistente o sin acceso"
+          },
+          "503": {
+            "description": "Servicio no disponible"
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/companies": {
+      "get": {
+        "summary": "Empresas autorizadas",
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "400": {
+            "description": "Entrada inválida"
+          },
+          "401": {
+            "description": "Identidad o sesión requerida"
+          },
+          "403": {
+            "description": "Perfil insuficiente"
+          },
+          "404": {
+            "description": "Recurso inexistente o sin acceso"
+          },
+          "503": {
+            "description": "Servicio no disponible"
+          }
+        }
+      },
+      "post": {
+        "summary": "Crear empresa vacía; solo operador global",
+        "responses": {
+          "201": {
+            "description": "Operación completada"
+          },
+          "400": {
+            "description": "Entrada inválida"
+          },
+          "401": {
+            "description": "Identidad o sesión requerida"
+          },
+          "403": {
+            "description": "Perfil insuficiente"
+          },
+          "404": {
+            "description": "Recurso inexistente o sin acceso"
+          },
+          "503": {
+            "description": "Servicio no disponible"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "slug": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "slug",
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/companies/{slug}": {
+      "parameters": [
+        {
+          "name": "slug",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{1,62}$"
+          }
+        }
+      ],
+      "get": {
+        "summary": "Empresa, perfil y correo actuales",
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "400": {
+            "description": "Entrada inválida"
+          },
+          "401": {
+            "description": "Identidad o sesión requerida"
+          },
+          "403": {
+            "description": "Perfil insuficiente"
+          },
+          "404": {
+            "description": "Recurso inexistente o sin acceso"
+          },
+          "503": {
+            "description": "Servicio no disponible"
+          }
+        }
+      }
+    },
+    "/api/companies/{slug}/session": {
+      "parameters": [
+        {
+          "name": "slug",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{1,62}$"
+          }
+        }
+      ],
+      "post": {
+        "summary": "Emitir sesión de dispositivo por 30 días; requiere JWT personal",
+        "responses": {
+          "201": {
+            "description": "Operación completada"
+          },
+          "400": {
+            "description": "Entrada inválida"
+          },
+          "401": {
+            "description": "Identidad o sesión requerida"
+          },
+          "403": {
+            "description": "Perfil insuficiente"
+          },
+          "404": {
+            "description": "Recurso inexistente o sin acceso"
+          },
+          "503": {
+            "description": "Servicio no disponible"
+          }
+        }
+      }
+    },
+    "/api/session": {
+      "delete": {
+        "summary": "Revocar la sesión de dispositivo presentada",
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "400": {
+            "description": "Entrada inválida"
+          },
+          "401": {
+            "description": "Identidad o sesión requerida"
+          },
+          "403": {
+            "description": "Perfil insuficiente"
+          },
+          "404": {
+            "description": "Recurso inexistente o sin acceso"
+          },
+          "503": {
+            "description": "Servicio no disponible"
+          }
+        }
+      }
+    },
+    "/api/companies/{slug}/estimates": {
+      "parameters": [
+        {
+          "name": "slug",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{1,62}$"
+          }
+        }
+      ],
+      "get": {
+        "summary": "Últimas 20 estimaciones autorizadas",
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "400": {
+            "description": "Entrada inválida"
+          },
+          "401": {
+            "description": "Identidad o sesión requerida"
+          },
+          "403": {
+            "description": "Perfil insuficiente"
+          },
+          "404": {
+            "description": "Recurso inexistente o sin acceso"
+          },
+          "503": {
+            "description": "Servicio no disponible"
+          }
+        }
+      },
+      "post": {
+        "summary": "Guardar estimación de la empresa con propietario autenticado",
+        "responses": {
+          "201": {
+            "description": "Operación completada"
+          },
+          "400": {
+            "description": "Entrada inválida"
+          },
+          "401": {
+            "description": "Identidad o sesión requerida"
+          },
+          "403": {
+            "description": "Perfil insuficiente"
+          },
+          "404": {
+            "description": "Recurso inexistente o sin acceso"
+          },
+          "503": {
+            "description": "Servicio no disponible"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "meeting": {
+                    "type": "object",
+                    "properties": {
+                      "subject": {
+                        "type": "string"
+                      },
+                      "durationMinutes": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "attendees": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "email": {
+                              "type": "string",
+                              "format": "email"
+                            }
+                          },
+                          "required": [
+                            "email"
+                          ]
+                        }
+                      },
+                      "recurrence": {
+                        "type": [
+                          "object",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "subject",
+                      "durationMinutes",
+                      "attendees"
+                    ]
+                  },
+                  "source": {
+                    "enum": [
+                      "demo",
+                      "outlook"
+                    ]
+                  },
+                  "requestId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "costCenterId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "meeting",
+                  "source",
+                  "costCenterId"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/companies/{slug}/admin/catalog": {
+      "parameters": [
+        {
+          "name": "slug",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{1,62}$"
+          }
+        }
+      ],
+      "get": {
+        "summary": "Catálogo completo editable; administrador",
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "400": {
+            "description": "Entrada inválida"
+          },
+          "401": {
+            "description": "Identidad o sesión requerida"
+          },
+          "403": {
+            "description": "Perfil insuficiente"
+          },
+          "404": {
+            "description": "Recurso inexistente o sin acceso"
+          },
+          "503": {
+            "description": "Servicio no disponible"
+          }
+        }
+      }
+    },
+    "/api/companies/{slug}/admin/settings": {
+      "parameters": [
+        {
+          "name": "slug",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{1,62}$"
+          }
+        }
+      ],
+      "post": {
+        "summary": "Actualizar configuración; administrador",
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "400": {
+            "description": "Entrada inválida"
+          },
+          "401": {
+            "description": "Identidad o sesión requerida"
+          },
+          "403": {
+            "description": "Perfil insuficiente"
+          },
+          "404": {
+            "description": "Recurso inexistente o sin acceso"
+          },
+          "503": {
+            "description": "Servicio no disponible"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "currency": {
+                    "type": "string",
+                    "pattern": "^[A-Z]{3}$"
+                  },
+                  "defaultHourlyRate": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "excludedEmails": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "email"
+                    }
+                  }
+                },
+                "required": [
+                  "currency",
+                  "defaultHourlyRate",
+                  "excludedEmails"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/companies/{slug}/admin/import": {
+      "parameters": [
+        {
+          "name": "slug",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{1,62}$"
+          }
+        }
+      ],
+      "post": {
+        "summary": "Previsualizar o confirmar importación atómica; administrador",
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "400": {
+            "description": "Entrada inválida"
+          },
+          "401": {
+            "description": "Identidad o sesión requerida"
+          },
+          "403": {
+            "description": "Perfil insuficiente"
+          },
+          "404": {
+            "description": "Recurso inexistente o sin acceso"
+          },
+          "503": {
+            "description": "Servicio no disponible"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "employees",
+                      "centers"
+                    ]
+                  },
+                  "format": {
+                    "enum": [
+                      "csv",
+                      "json"
+                    ]
+                  },
+                  "content": {
+                    "type": "string"
+                  },
+                  "mode": {
+                    "enum": [
+                      "merge",
+                      "replace"
+                    ]
+                  },
+                  "apply": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                },
+                "required": [
+                  "kind",
+                  "format",
+                  "content"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/companies/{slug}/admin/members": {
+      "parameters": [
+        {
+          "name": "slug",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{1,62}$"
+          }
+        }
+      ],
+      "get": {
+        "summary": "Listar accesos; administrador",
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "400": {
+            "description": "Entrada inválida"
+          },
+          "401": {
+            "description": "Identidad o sesión requerida"
+          },
+          "403": {
+            "description": "Perfil insuficiente"
+          },
+          "404": {
+            "description": "Recurso inexistente o sin acceso"
+          },
+          "503": {
+            "description": "Servicio no disponible"
+          }
+        }
+      },
+      "post": {
+        "summary": "Habilitar, cambiar perfil o desactivar miembro",
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "400": {
+            "description": "Entrada inválida"
+          },
+          "401": {
+            "description": "Identidad o sesión requerida"
+          },
+          "403": {
+            "description": "Perfil insuficiente"
+          },
+          "404": {
+            "description": "Recurso inexistente o sin acceso"
+          },
+          "503": {
+            "description": "Servicio no disponible"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "role": {
+                    "enum": [
+                      "admin",
+                      "employee"
+                    ]
+                  },
+                  "active": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "email",
+                  "role",
+                  "active"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/companies/{slug}/admin/employee": {
+      "parameters": [
+        {
+          "name": "slug",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{1,62}$"
+          }
+        }
+      ],
+      "delete": {
+        "summary": "Eliminar empleado del catálogo",
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "400": {
+            "description": "Entrada inválida"
+          },
+          "401": {
+            "description": "Identidad o sesión requerida"
+          },
+          "403": {
+            "description": "Perfil insuficiente"
+          },
+          "404": {
+            "description": "Recurso inexistente o sin acceso"
+          },
+          "503": {
+            "description": "Servicio no disponible"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  }
+                },
+                "required": [
+                  "email"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/companies/{slug}/admin/center": {
+      "parameters": [
+        {
+          "name": "slug",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{1,62}$"
+          }
+        }
+      ],
+      "delete": {
+        "summary": "Eliminar centro de coste",
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "400": {
+            "description": "Entrada inválida"
+          },
+          "401": {
+            "description": "Identidad o sesión requerida"
+          },
+          "403": {
+            "description": "Perfil insuficiente"
+          },
+          "404": {
+            "description": "Recurso inexistente o sin acceso"
+          },
+          "503": {
+            "description": "Servicio no disponible"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/companies/{slug}/admin/sessions": {
+      "parameters": [
+        {
+          "name": "slug",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{1,62}$"
+          }
+        }
+      ],
+      "delete": {
+        "summary": "Revocar dispositivos del miembro",
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "400": {
+            "description": "Entrada inválida"
+          },
+          "401": {
+            "description": "Identidad o sesión requerida"
+          },
+          "403": {
+            "description": "Perfil insuficiente"
+          },
+          "404": {
+            "description": "Recurso inexistente o sin acceso"
+          },
+          "503": {
+            "description": "Servicio no disponible"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  }
+                },
+                "required": [
+                  "email"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -8,6 +8,9 @@ import {api} from '../server/api.mjs';
 import {pool} from '../server/database.mjs';
 import {config,allowedHost,requireAccess} from '../server/access.mjs';
 import {manifest} from '../server/manifest.mjs';
+import {companies} from '../server/companies.mjs';
+import {authProxy} from '../server/auth-proxy.mjs';
+import {multiTenant} from '../server/company-auth.mjs';
 const projectRoot = resolve(fileURLToPath(new URL('../',import.meta.url)));
 const root = existsSync(resolve(projectRoot,'dist/taskpane.html')) ? resolve(projectRoot,'dist') : projectRoot;
 const demo = process.argv.includes('--demo');
@@ -19,13 +22,15 @@ const handler=async(req,res)=>{
     if(url.pathname==='/healthz'){res.writeHead(200,{'Content-Type':'application/json'});res.end('{"status":"ok"}');return;}
     // Outlook embeds the document cross-site; API calls still enforce their own origin.
     if(!allowedHost(req)){res.writeHead(403);res.end('Forbidden');return;}
+    if(await authProxy(req,res,url))return;
+    if(await companies(req,res,url))return;
     if(await api(req,res,url))return;
-    const pathname = decodeURIComponent(url.pathname==='/'?'/taskpane.html':url.pathname);
+    const pathname = decodeURIComponent(url.pathname==='/'?(multiTenant()?'/portal.html':'/taskpane.html'):url.pathname.startsWith('/empresas/')?'/portal.html':url.pathname);
     if(pathname==='/manifest.xml'){res.writeHead(200,{'Content-Type':'application/xml; charset=utf-8','Cache-Control':'no-store'});res.end(await manifest(config.origin));return;}
-    if(pathname==='/taskpane.html' && !requireAccess(req,res))return;
+    if(pathname==='/taskpane.html' && !multiTenant() && !requireAccess(req,res))return;
     if(config.production && pathname.startsWith('/data/')){res.writeHead(404);res.end('Not found');return;}
     const path=resolve(root,'.'+pathname);
-    if (!path.startsWith(root+sep) || !['/src/','/data/','/assets/'].some(prefix=>pathname.startsWith(prefix)) && !['/taskpane.html','/commands.html','/manifest.xml'].includes(pathname)) {res.writeHead(404);res.end('Not found');return;}
+    if (!path.startsWith(root+sep) || !['/src/','/data/','/assets/'].some(prefix=>pathname.startsWith(prefix)) && !['/taskpane.html','/portal.html','/commands.html','/manifest.xml'].includes(pathname)) {res.writeHead(404);res.end('Not found');return;}
     const content=await readFile(path);
     res.writeHead(200,{'Content-Type':types[extname(path)]||'application/octet-stream','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(content);
   } catch {res.writeHead(404);res.end('Not found');}

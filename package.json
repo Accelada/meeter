@@ -9,9 +9,12 @@
   "scripts": {
     "build": "tsc --noEmit && node scripts/build.mjs",
     "db:migrate": "node scripts/migrate.mjs",
+    "db:sync-demo": "node scripts/sync-demo.mjs",
     "manifest": "node scripts/manifest.mjs",
     "test:integration": "node scripts/integration.mjs",
     "test:deployment": "node scripts/deployment-smoke.mjs",
+    "test:tenants": "node scripts/tenant-integration.mjs",
+    "test:auth": "node scripts/auth-integration.mjs",
     "start": "node scripts/server.mjs",
     "demo": "node scripts/server.mjs --demo",
     "certs": "office-addin-dev-certs install",
@@ -26,8 +29,10 @@
     "typescript": "^7.0.2"
   },
   "dependencies": {
+    "@neon/auth": "^0.8.2",
     "@neon/config": "^1.10.0",
     "@neon/env": "^1.6.8",
+    "jose": "^6.2.15",
     "pg": "^8.23.1"
   }
 }

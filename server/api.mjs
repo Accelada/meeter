@@ -1,10 +1,10 @@
 import {randomUUID} from 'node:crypto';
-import {readFile} from 'node:fs/promises';
 import {databaseEnabled, pool, getRates} from './database.mjs';
 import {calculate} from '../src/calculator.js';
 import {recurrenceSummary} from '../src/recurrence.js';
 import {allowedOrigin,requireAccess} from './access.mjs';
 import {findMeetings,meetingIds,selectedAttribute,RequestError} from './meetings.mjs';
+import {openApi} from './openapi.mjs';
 
 function json(res, status, data) {
   res.writeHead(status, {'Content-Type':'application/json; charset=utf-8', 'Cache-Control':'no-store', 'X-Content-Type-Options':'nosniff'});
@@ -39,42 +39,44 @@ function validate(input) {
   try{recurrenceSummary(meeting.recurrence);}catch(error){throw new InputError(error.message);}
   return {meeting, source, costCenterId, requestId};
 }
-export async function api(req, res, url) {
+export async function api(req, res, url, scope) {
   if (!url.pathname.startsWith('/api/')) return false;
   if (!allowedOrigin(req)) {
     json(res, 403, {error:'Origen no permitido.'}); return true;
   }
-  if(!requireAccess(req,res))return true;
+  if(!scope && process.env.MEETER_MULTI_TENANT==='true'){json(res,404,{error:'Usa el endpoint de tu empresa.'});return true;}
+  if(!scope && !requireAccess(req,res))return true;
+  const db=scope?.db || pool;
   if (!databaseEnabled) {json(res, 503, {code:'DATABASE_NOT_CONFIGURED', error:'PostgreSQL no configurado.'}); return true;}
   try {
     if(req.method==='GET' && url.pathname==='/api/openapi.json'){
-      json(res,200,JSON.parse(await readFile(new URL('../docs/openapi.json',import.meta.url),'utf8')));return true;
+      json(res,200,await openApi(Boolean(scope)));return true;
     }
     if(req.method==='POST' && (req.headers['content-type']?.split(';')[0]!=='application/json' || (!req.headers.origin && !req.headers.authorization)))throw new InputError('Se requiere JSON y Origin o autenticación explícita.');
     if(req.method==='POST' && url.pathname==='/api/v1/meetings/query'){
-      json(res,200,await findMeetings(pool,meetingIds(await body(req))));return true;
+      json(res,200,await findMeetings(db,meetingIds(await body(req))));return true;
     }
     if(req.method==='GET' && url.pathname==='/api/v1/meetings'){
       const ids=meetingIds({id:url.searchParams.get('id')});
       const attribute=selectedAttribute(url);
-      const found=await findMeetings(pool,ids);
+      const found=await findMeetings(db,ids);
       if(!found.meetings.length)throw new RequestError('Convocatoria no encontrada.',404);
       const meeting=found.meetings[0];
       json(res,200,attribute?{id:meeting.id,attribute,value:meeting[attribute] ?? null}:meeting);return true;
     }
-    if (req.method === 'GET' && url.pathname === '/api/rates') json(res, 200, await getRates());
+    if (req.method === 'GET' && url.pathname === '/api/rates') json(res, 200, await getRates(db));
     else if (req.method === 'GET' && url.pathname === '/api/estimates') {
-      const {rows} = await pool.query('SELECT id, created_at AS "createdAt", report FROM meeting_cost.estimates ORDER BY created_at DESC, id DESC LIMIT 20');
+      const {rows} = await db.query('SELECT id, created_at AS "createdAt", report FROM meeting_cost.estimates ORDER BY created_at DESC, id DESC LIMIT 20');
       json(res, 200, rows);
     } else if (req.method === 'POST' && url.pathname === '/api/estimates') {
       const {meeting, source, costCenterId, requestId} = validate(await body(req));
-      const config = await getRates();
+      const config = await getRates(db);
       const costCenter = costCenterId===null ? config.costCenters[0] : config.costCenters.find(c => c.id === costCenterId);
       if (!costCenter) throw new InputError('Centro de coste desconocido.');
       const report = {schemaVersion:1, generatedAt:new Date().toISOString(), source, costCenter,
         captureEvent:source==='outlook'?'ItemSend':undefined,
         subject:meeting.subject, start:meeting.start, end:meeting.end, recurrence:meeting.recurrence, outlookItemId:meeting.outlookItemId, organizerEmail:meeting.organizerEmail, ...calculate(meeting, config)};
-      const {rows} = await pool.query('INSERT INTO meeting_cost.estimates (id, report) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET report = EXCLUDED.report RETURNING id, created_at AS "createdAt", report', [requestId || randomUUID(), JSON.stringify(report)]);
+      const {rows} = await db.query('INSERT INTO meeting_cost.estimates (id, report) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET report = EXCLUDED.report RETURNING id, created_at AS "createdAt", report', [requestId || randomUUID(), JSON.stringify(report)]);
       json(res, 201, rows[0]);
     } else json(res, 404, {error:'Ruta no encontrada.'});
   } catch (error) {

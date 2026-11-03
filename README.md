@@ -1,5 +1,14 @@
 # Meeter — prototipo de complemento Outlook
 
+## Espacios por empresa
+
+El portal multiempresa permite crear empresas, importar empleados y centros por
+CSV/JSON y administrar accesos. El complemento solicita la dirección de empresa y
+una cuenta personal; PostgreSQL aísla los datos por empresa y las reuniones por
+usuario. Consulta [configuración, permisos y despliegue](./docs/companies.md).
+Activa `MEETER_MULTI_TENANT=true` únicamente después de aplicar las migraciones y
+configurar Neon Auth. El modo anterior sigue disponible para una transición controlada.
+
 Calculadora de coste **estimado**, con un panel lateral en una convocatoria de Outlook y un modo demo independiente. JavaScript con módulos ES, HTML y CSS, servidor Node.js local y persistencia opcional en PostgreSQL de Neon.
 
 La marca visible del complemento es **Meeter**. La cabecera muestra únicamente el logo y el nombre; debajo aparece el coste estimado. Para series periódicas se muestra el coste por reunión y, en pequeño, el total de la serie y su número de reuniones. Sin fecha de fin no se inventa un importe total. Las cifras de serie asumen igual duración, participantes y tarifas para todas las ocurrencias; no incluyen excepciones o cancelaciones individuales.

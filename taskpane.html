@@ -2,7 +2,20 @@
 <html lang="es">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Meeter</title><link rel="stylesheet" href="src/styles.css"></head>
 <body><main>
-<p id="status" role="status" aria-live="polite">Cargando tarifas…</p>
+<p id="status" role="status" aria-live="polite" tabindex="-1">Cargando tarifas…</p>
+<section id="companySetup" hidden>
+<h2>Conectar con tu empresa</h2>
+<form id="companyForm">
+<label>Dirección de empresa<input id="companyEndpoint" type="url" required placeholder="https://meeter.adriancelada.com/empresas/mi-empresa"></label>
+<label>Correo<input id="companyEmail" type="email" autocomplete="username" required></label>
+<label>Contraseña<input id="companyPassword" type="password" autocomplete="current-password" required></label>
+<button id="companyLogin" type="submit">Entrar y conectar</button>
+</form>
+<button id="companyMicrosoft" type="button" hidden>Continuar con Microsoft</button>
+<p><a href="/portal.html" target="_blank" rel="noopener">Crear cuenta, verificar correo o recuperar acceso</a></p>
+</section>
+<div id="companyAccount" hidden><span id="companyLabel"></span> <button id="companyDisconnect" type="button">Cambiar empresa o cerrar sesión</button></div>
+<div id="costContent">
 <section id="demoControls" class="demo-controls" hidden aria-label="Datos de demostración">
 <span id="mode" class="badge"></span>
 <label>Organizador<input id="organizer" type="email" value="organizador@ejemplo.com"></label>
@@ -24,4 +37,5 @@
 <label class="center-label" for="center">Centro de coste</label><select id="center"></select>
 <details class="breakdown"><summary><span>Desglose de asistentes</span><span id="peopleCount" class="count"></span><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg></summary><div id="people"></div></details>
 <footer>Coste orientativo según las tarifas del catálogo.</footer>
+</div>
 </main><script type="module" src="src/app.js"></script></body></html>

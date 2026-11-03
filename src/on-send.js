@@ -1,4 +1,5 @@
 import {readMeeting,loadProperties,saveProperties,saveDraft} from './outlook.js';
+import {readCompanySession} from './company-client.js';
 const host=typeof window!=='undefined'?window:globalThis;
 
 function uuid() {
@@ -24,7 +25,10 @@ export async function handleSend(event,{office=host.Office,fetchImpl=host.fetch.
       const meeting=await readMeeting(item);
       meeting.outlookItemId=outlookItemId || undefined;
       if(controller.signal.aborted)throw new Error('Tiempo de espera agotado.');
-      const response=await fetchImpl('./api/estimates',{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json'},
+      const session=readCompanySession(office);
+      if(session && (!/^[a-z0-9-]+$/.test(session.slug) || !session.token || !Number.isFinite(Date.parse(session.expiresAt)) || Date.parse(session.expiresAt)<=Date.now()))throw new Error('Sesión caducada.');
+      if(session && properties.get('meeterCompanySlug') && properties.get('meeterCompanySlug')!==session.slug)throw new Error('Abre el panel y confirma la empresa de esta convocatoria.');
+      const response=await fetchImpl(session?`/api/companies/${session.slug}/estimates`:'./api/estimates',{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json',...(session?{Authorization:`Bearer ${session.token}`}:{})},
         body:JSON.stringify({meeting,source:'outlook',requestId,costCenterId:properties.get('meetingCostCenter') || null})});
       if(!response.ok)throw new Error('No se pudo registrar la estimación.');
       const saved=await response.json();

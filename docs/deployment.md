@@ -1,5 +1,9 @@
 # Servidor HTTPS y complemento en otros equipos
 
+Para varias empresas y cuentas personales, consulta [el despliegue multiempresa](./companies.md).
+La autenticación compartida descrita abajo corresponde al modo anterior; en el modo
+multiempresa `SERVICE_API_KEY` se reserva al operador y los empleados usan sus cuentas.
+
 Se prepara el despliegue; estos archivos no publican el proyecto ni eligen un proveedor.
 Necesitas un dominio propio, un servidor Node.js 20+ con acceso saliente a Neon y un
 certificado HTTPS válido para ese dominio. Los otros PCs no necesitan Node ni la base
